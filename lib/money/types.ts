@@ -64,3 +64,11 @@ export interface AgentResult {
   transaction: Transaction;
   message: string; // human-readable reply to show in chat
 }
+
+// A single chat bubble the agent sends back. "info" = a conversational reply
+// (no money moved); the rest mirror a transaction outcome.
+export type MessageKind = "success" | "blocked" | "failed" | "pending" | "info";
+export interface AgentMessage {
+  text: string;
+  status: MessageKind;
+}

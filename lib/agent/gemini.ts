@@ -1,75 +1,77 @@
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import type { PaymentIntent } from "@/lib/money/types";
 
-// The AI's ONLY job: turn natural language into a structured PaymentIntent.
-// It never touches money, picks wallets, or checks rules — the policy engine
-// does that deterministically. This keeps the money logic auditable and the
-// demo reliable on stage.
+// The AI turns a message into (a) a friendly reply AND (b) zero or more payment
+// intents. It can hold a conversation and answer questions using the wallet
+// context we pass in — but it never moves money. The policy engine executes.
 
-const SYSTEM = `You are the intent parser for a programmable-money wallet in Nigeria.
-Convert the user's message into a single payment intent as JSON.
-Rules:
-- amount is in Naira (₦). "5k" = 5000, "500" = 500. Null if none given.
-- action is one of: buy_airtime, buy_data, pay_bill, pay_merchant, pay_rent, cash_out, unknown.
-- Sending/transferring money to another PERSON or phone number (e.g. "send ₦5k to
-  08145997956 palmpay Samuel", "transfer 2k to Ada") is a PAYMENT, not a cash_out.
-  Put the person's name and/or number in recipient.
-- cash_out is ONLY when the user withdraws to THEIR OWN bank/account or says
-  "withdraw"/"cash out" for themselves, with no third-party recipient.
-- Determine category from the stated purpose ("for X"):
-  - feeding/food/lunch/suya/restaurant/market => pay_merchant, category food.
-  - transport/bus/uber/bolt/fare/fuel => pay_merchant, category transport.
-  - data/internet => buy_data, category data.
-  - airtime/recharge/credit => buy_airtime, category airtime.
-  - electricity/nepa/light/dstv/water/bill => pay_bill, category bills.
-  - rent/landlord => pay_rent, category rent.
-- If the user is sending money to a person but states NO purpose, use action
-  pay_merchant with category "general" (the app will ask what it's for). Still
-  fill amount and recipient.
-- network is MTN, Glo, Airtel, or 9mobile if stated, else null.
-- recipient is the phone number, meter, account, or merchant/person named, else null.
-- If you truly cannot tell what they want, use action "unknown".`;
+export interface Understanding {
+  reply: string; // natural-language message to show the user
+  payments: PaymentIntent[]; // every payment the user asked for (may be many)
+}
 
-const responseSchema = {
+const SYSTEM = `You are Zeroth, a warm, concise financial agent for an average Nigerian.
+The user might (a) ask you to make ONE OR MORE payments, (b) ask a question about
+their money, or (c) just chat. Reply in JSON with two fields:
+
+- "reply": a short, friendly, human message. Answer questions, explain what you
+  did or why something was blocked, greet, or confirm. Speak naturally (Nigerian-
+  friendly, plain English). Never invent transaction references or balances —
+  the app fills those in when it executes payments.
+- "payments": an array with EVERY payment the user requested. If they aren't
+  asking to pay, use an empty array.
+
+Extract ALL payments in one message. "buy ₦450 airtime to 0801 and ₦700 airtime
+to 0802" is TWO payments. "send 2k to Ada and 3k to Musa for food" is two.
+
+For each payment:
+- amount is Naira. "5k"=5000, "#450"/"₦450"=450.
+- action ∈ buy_airtime, buy_data, pay_bill, pay_merchant, pay_rent, cash_out, unknown.
+- Sending money to a PERSON/phone is a payment (pay_merchant), NOT cash_out.
+  cash_out is only withdrawing to the user's OWN bank, no third party.
+- category from purpose: feeding/food→food; transport/fare→transport; data→data;
+  airtime→airtime; light/nepa/bill→bills; rent→rent. If a transfer has no stated
+  purpose, set category "general" (the app will ask what it's for).
+- recipient = phone/name/meter; network = MTN/Glo/Airtel/9mobile if stated.
+
+You are given the user's wallets, savings and recent activity as context. Use it
+to answer things like "what happened?", "how much do I have for transport?", or
+"can I afford X?".`;
+
+const schema = {
   type: SchemaType.OBJECT,
   properties: {
-    action: {
-      type: SchemaType.STRING,
-      enum: [
-        "buy_airtime",
-        "buy_data",
-        "pay_bill",
-        "pay_merchant",
-        "pay_rent",
-        "cash_out",
-        "unknown",
-      ],
+    reply: { type: SchemaType.STRING },
+    payments: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          action: {
+            type: SchemaType.STRING,
+            enum: ["buy_airtime", "buy_data", "pay_bill", "pay_merchant", "pay_rent", "cash_out", "unknown"],
+          },
+          category: {
+            type: SchemaType.STRING,
+            enum: ["airtime", "data", "food", "transport", "bills", "rent", "general"],
+          },
+          amount: { type: SchemaType.NUMBER, nullable: true },
+          recipient: { type: SchemaType.STRING, nullable: true },
+          network: { type: SchemaType.STRING, nullable: true },
+        },
+        required: ["action", "category"],
+      },
     },
-    category: {
-      type: SchemaType.STRING,
-      enum: [
-        "airtime",
-        "data",
-        "food",
-        "transport",
-        "bills",
-        "rent",
-        "general",
-      ],
-    },
-    amount: { type: SchemaType.NUMBER, nullable: true },
-    recipient: { type: SchemaType.STRING, nullable: true },
-    network: { type: SchemaType.STRING, nullable: true },
-    note: { type: SchemaType.STRING, nullable: true },
   },
-  required: ["action", "category"],
+  required: ["reply", "payments"],
 } as const;
 
-export async function parseIntent(message: string): Promise<PaymentIntent> {
+export async function understand(
+  message: string,
+  context: string
+): Promise<Understanding> {
   const key = process.env.GEMINI_API_KEY;
-
-  // Offline / no-key fallback keeps the demo alive on bad wifi.
-  if (!key) return heuristicParse(message);
+  if (!key) return heuristicUnderstand(message);
 
   try {
     const genAI = new GoogleGenerativeAI(key);
@@ -78,17 +80,22 @@ export async function parseIntent(message: string): Promise<PaymentIntent> {
       systemInstruction: SYSTEM,
       generationConfig: {
         responseMimeType: "application/json",
-        // @ts-expect-error SDK schema typing is loose across versions
-        responseSchema,
-        temperature: 0,
+        // @ts-expect-error loose SDK schema typing across versions
+        responseSchema: schema,
+        temperature: 0.25,
       },
     });
-    const res = await model.generateContent(message);
-    const parsed = JSON.parse(res.response.text());
-    return normalize(parsed);
+    const res = await model.generateContent(`${context}\n\nUser: ${message}`);
+    const data = JSON.parse(res.response.text()) as {
+      reply?: string;
+      payments?: Array<Partial<PaymentIntent>>;
+    };
+    return {
+      reply: typeof data.reply === "string" ? data.reply : "",
+      payments: (data.payments ?? []).map(normalize),
+    };
   } catch {
-    // Any API/parse failure => fall back rather than crash the demo.
-    return heuristicParse(message);
+    return heuristicUnderstand(message);
   }
 }
 
@@ -103,20 +110,18 @@ function normalize(p: Partial<PaymentIntent>): PaymentIntent {
   };
 }
 
-// --- Deterministic fallback parser -----------------------------------------
+// --- Deterministic fallback (no key / API down) ----------------------------
 
 function parseAmount(msg: string): number | null {
-  const k = msg.match(/₦?\s*(\d+(?:\.\d+)?)\s*k\b/i);
+  const k = msg.match(/[₦#]?\s*(\d+(?:\.\d+)?)\s*k\b/i);
   if (k) return Math.round(parseFloat(k[1]) * 1000);
-  const n = msg.match(/₦?\s*(\d{2,7})\b/);
+  const n = msg.match(/[₦#]?\s*(\d{2,7})\b/);
   return n ? parseInt(n[1], 10) : null;
 }
-
 function parsePhone(msg: string): string | null {
   const m = msg.match(/\b(?:\+?234|0)\d{9,10}\b/);
   return m ? m[0] : null;
 }
-
 function parseNetwork(msg: string): string | null {
   const m = msg.match(/\b(mtn|glo|airtel|9mobile|etisalat)\b/i);
   return m ? m[1].toUpperCase() : null;
@@ -128,43 +133,37 @@ export function heuristicParse(message: string): PaymentIntent {
   const phone = parsePhone(message);
   const network = parseNetwork(message);
 
-  // Self cash-out only (withdrawing to your OWN account, no third party).
   if (/(withdraw|cash ?out|to my (own )?(bank|account)|send to my)/.test(m)) {
-    return {
-      action: "cash_out",
-      category: "general",
-      amount,
-      recipient: null,
-      network: null,
-      note: null,
-    };
+    return { action: "cash_out", category: "general", amount, recipient: null, network: null, note: null };
   }
-  if (/\bdata\b/.test(m)) {
-    return { action: "buy_data", category: "data", amount, recipient: phone, network, note: null };
-  }
-  if (/(airtime|recharge|credit|top ?up)/.test(m)) {
-    return { action: "buy_airtime", category: "airtime", amount, recipient: phone, network, note: null };
-  }
-  if (/(nepa|electric|light|dstv|gotv|water|bill)/.test(m)) {
-    return { action: "pay_bill", category: "bills", amount, recipient: phone, network: null, note: null };
-  }
-  if (/(rent|landlord)/.test(m)) {
-    return { action: "pay_rent", category: "rent", amount, recipient: null, network: null, note: null };
-  }
-  if (/(feed|food|lunch|suya|eat|chop|restaurant|dinner|breakfast|market)/.test(m)) {
-    return { action: "pay_merchant", category: "food", amount, recipient: phone, network: null, note: null };
-  }
-  if (/(bus|uber|bolt|transport|keke|okada|fare|fuel)/.test(m)) {
-    return { action: "pay_merchant", category: "transport", amount, recipient: phone, network: null, note: null };
-  }
-  // Transfer to a person/number with no stated purpose — the orchestrator will
-  // ask what it's for. Detect a phone, a bank/wallet name, or send/transfer/pay.
-  if (
-    phone ||
-    /(palmpay|opay|moniepoint|kuda|gtb|access|zenith|uba|wema|first ?bank)/.test(m) ||
-    (/(send|transfer|pay)\b/.test(m) && amount)
-  ) {
+  if (/\bdata\b/.test(m)) return { action: "buy_data", category: "data", amount, recipient: phone, network, note: null };
+  if (/(airtime|recharge|credit|top ?up)/.test(m)) return { action: "buy_airtime", category: "airtime", amount, recipient: phone, network, note: null };
+  if (/(nepa|electric|light|dstv|gotv|water|bill)/.test(m)) return { action: "pay_bill", category: "bills", amount, recipient: phone, network: null, note: null };
+  if (/(rent|landlord)/.test(m)) return { action: "pay_rent", category: "rent", amount, recipient: null, network: null, note: null };
+  if (/(feed|food|lunch|suya|eat|chop|restaurant|dinner|breakfast|market)/.test(m)) return { action: "pay_merchant", category: "food", amount, recipient: phone, network: null, note: null };
+  if (/(bus|uber|bolt|transport|keke|okada|fare|fuel)/.test(m)) return { action: "pay_merchant", category: "transport", amount, recipient: phone, network: null, note: null };
+  if (phone || /(palmpay|opay|moniepoint|kuda|gtb|access|zenith|uba|wema|first ?bank)/.test(m) || (/(send|transfer|pay)\b/.test(m) && amount)) {
     return { action: "pay_merchant", category: "general", amount, recipient: phone, network: null, note: null };
   }
   return { action: "unknown", category: "general", amount, recipient: null, network: null, note: null };
+}
+
+function heuristicUnderstand(message: string): Understanding {
+  // Split on "and" / commas so multiple payments in one message are caught.
+  const parts = message.split(/\band\b|,|;|\bthen\b/i).map((s) => s.trim()).filter(Boolean);
+  const payments = parts
+    .map(heuristicParse)
+    .filter((p) => p.action !== "unknown" && p.amount);
+  if (payments.length) return { reply: "", payments };
+
+  const m = message.toLowerCase();
+  let reply =
+    "I can buy airtime or data, pay bills, or send money to someone — just tell me the amount and who it's for. You can also ask me how much you have.";
+  if (/\b(hi|hello|hey|yo|good (morning|afternoon|evening))\b/.test(m))
+    reply = "Hey! I'm Zeroth, your money agent. Tell me what to pay for, or ask how your wallets are doing.";
+  else if (/(how much|balance|left|afford|what.?s? in)/.test(m))
+    reply = "Open your Money tab to see each wallet, or tell me a payment and I'll check the limit and balance before sending.";
+  else if (/(what happened|why|explain)/.test(m))
+    reply = "Each message I execute shows its own result above — a green tick means it went through, a lock means a rule blocked it. Want me to try a payment again?";
+  return { reply, payments: [] };
 }

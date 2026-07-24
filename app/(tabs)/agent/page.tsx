@@ -4,13 +4,12 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Mic, Send, RotateCcw } from "@/components/icons";
 import { AgentMark, type AgentState } from "@/components/agent-mark";
-import type { Transaction } from "@/lib/money/types";
 import { loadPurse, savePurse, resetAndSave } from "@/lib/client/purse";
 
 interface ChatMsg {
   role: "user" | "agent";
   text: string;
-  status?: Transaction["status"];
+  status?: string;
 }
 
 const SUGGESTIONS = [
@@ -62,13 +61,20 @@ function AgentInner() {
       });
       const data = await res.json();
       if (data.state) savePurse(data.state);
+      const bubbles: { text: string; status?: string }[] = Array.isArray(
+        data.messages
+      )
+        ? data.messages
+        : [];
       setMessages((m) => [
         ...m,
-        {
-          role: "agent",
-          text: data.result.message,
-          status: data.result.transaction.status,
-        },
+        ...(bubbles.length
+          ? bubbles.map((b) => ({
+              role: "agent" as const,
+              text: b.text,
+              status: b.status,
+            }))
+          : [{ role: "agent" as const, text: "Done." }]),
       ]);
     } catch {
       setMessages((m) => [

@@ -10,6 +10,6 @@ export async function POST(request: Request) {
   if (!message || typeof message !== "string") {
     return NextResponse.json({ error: "message required" }, { status: 400 });
   }
-  const { result, state } = await runAgent(message, normalizePurse(body?.state));
-  return NextResponse.json({ result, state });
+  const { messages, state } = await runAgent(message, normalizePurse(body?.state));
+  return NextResponse.json({ messages, state });
 }

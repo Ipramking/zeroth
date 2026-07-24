@@ -12,7 +12,7 @@ export interface PurseState {
   savings: number;
   displayName: string | null;
   total: number;
-  pending: PaymentIntent | null;
+  pending: PaymentIntent[]; // transfers awaiting a purpose ("for what?")
   initial: Wallet[]; // snapshot of the onboarded wallets, for Reset
 }
 
@@ -70,7 +70,7 @@ function purse(wallets: Wallet[], displayName: string | null): PurseState {
     savings: 0,
     displayName,
     total: wallets.reduce((s, w) => s + w.balance, 0),
-    pending: null,
+    pending: [],
     initial: cloneWallets(wallets),
   };
 }
@@ -96,7 +96,7 @@ export function resetPurse(prev: PurseState): PurseState {
     savings: 0,
     displayName: prev.displayName,
     total: initial.reduce((s, w) => s + w.balance, 0),
-    pending: null,
+    pending: [],
     initial: cloneWallets(initial),
   };
 }
@@ -114,7 +114,7 @@ export function normalizePurse(s: unknown): PurseState {
     savings: Number(o.savings) || 0,
     displayName: o.displayName ?? null,
     total: Number(o.total) || wallets.reduce((a, w) => a + (Number(w.balance) || 0), 0),
-    pending: o.pending ?? null,
+    pending: Array.isArray(o.pending) ? o.pending : [],
     initial: Array.isArray(o.initial) && o.initial.length ? o.initial : cloneWallets(wallets),
   };
 }
