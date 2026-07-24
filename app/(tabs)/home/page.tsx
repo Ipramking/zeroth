@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowUpRight, Mic } from "lucide-react";
+import { ArrowUpRight, Mic } from "@/components/icons";
 import { useMoney, naira, spendable, lockedForGoals } from "@/lib/client/use-money";
 import { WalletIcon } from "@/components/wallet-icon";
 import { ThemeToggle } from "@/components/theme-toggle";

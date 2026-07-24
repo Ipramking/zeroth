@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Home,
   Utensils,
@@ -10,12 +12,12 @@ import {
   Coins,
   Shield,
   TrendingUp,
-  type LucideIcon,
-} from "lucide-react";
+  type IconType,
+} from "@/components/icons";
 import type { Category } from "@/lib/money/types";
 import { cn } from "@/lib/utils";
 
-const ICONS: Record<Category, LucideIcon> = {
+const ICONS: Record<Category, IconType> = {
   airtime: Smartphone,
   data: Wifi,
   food: Utensils,
@@ -28,7 +30,7 @@ const ICONS: Record<Category, LucideIcon> = {
 // For custom / vault wallets (category "general"), infer a fitting icon from
 // the wallet name so "Savings", "Emergency", "Investments", "School Fees" etc.
 // don't all look the same.
-const NAME_HINTS: Array<[RegExp, LucideIcon]> = [
+const NAME_HINTS: Array<[RegExp, IconType]> = [
   [/sav|piggy|target|goal/i, PiggyBank],
   [/emerg|safety|rainy|shield|backup/i, Shield],
   [/invest|stock|crypto|grow|business|biz|profit/i, TrendingUp],

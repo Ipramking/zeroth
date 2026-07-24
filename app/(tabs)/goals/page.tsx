@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, PiggyBank, Plus } from "lucide-react";
+import { Home, PiggyBank, Plus } from "@/components/icons";
 import { useMoney, naira } from "@/lib/client/use-money";
 
 export default function GoalsPage() {

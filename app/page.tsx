@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowRight, ShieldCheck, Sparkles, Lock, Mic } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles, Lock, Mic } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { BrandLockup } from "@/components/brand";
 import { ThemeToggle } from "@/components/theme-toggle";

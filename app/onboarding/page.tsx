@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef, useCallback } from "react";
-import { ArrowRight, ArrowLeft, Check, Sparkles, Loader2, X, Plus } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check, Sparkles, Loader2, X, Plus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BrandLockup } from "@/components/brand";

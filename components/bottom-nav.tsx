@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Wallet, Target, ListChecks } from "lucide-react";
+import { Home, Wallet, Target, ListChecks } from "@/components/icons";
 import { AgentMark } from "./agent-mark";
 import { cn } from "@/lib/utils";
 

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Mic, Send, RotateCcw } from "lucide-react";
+import { Mic, Send, RotateCcw } from "@/components/icons";
 import { AgentMark, type AgentState } from "@/components/agent-mark";
 import type { Transaction } from "@/lib/money/types";
 

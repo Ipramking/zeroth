@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Lock, AlertTriangle } from "lucide-react";
+import { Check, Lock, AlertTriangle } from "@/components/icons";
 import { useMoney, naira } from "@/lib/client/use-money";
 import type { Transaction } from "@/lib/money/types";
 

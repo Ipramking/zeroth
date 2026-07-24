@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 // Light/dark switch. Reads the class the pre-paint script set, then persists
