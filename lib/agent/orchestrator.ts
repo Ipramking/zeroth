@@ -1,12 +1,7 @@
 import type { AgentResult, Category, PaymentIntent, Transaction } from "@/lib/money/types";
 import { evaluatePolicy, roundUpSavings, OWN_LINE } from "@/lib/money/policy";
 import { execute } from "@/lib/money/provider";
-import {
-  commitTransaction,
-  getWallets,
-  getPending,
-  setPending,
-} from "@/lib/money/store";
+import { applyTransaction, clonePurse, type PurseState } from "@/lib/money/state";
 import { parseIntent } from "./gemini";
 
 function id() {
@@ -39,8 +34,7 @@ function withCategory(intent: PaymentIntent, cat: Category): PaymentIntent {
   return { ...intent, category: cat, action: actionForCategory(cat) };
 }
 
-// A payment we understood except for WHICH purpose funds it — so we can't yet
-// pick a wallet. Anything with money but no concrete category needs a purpose.
+// A payment we understood except for WHICH purpose funds it.
 function needsPurpose(i: PaymentIntent): boolean {
   if (!i.amount || i.amount <= 0) return false;
   if (i.action === "cash_out") return false;
@@ -61,31 +55,38 @@ function pendingTxn(intent: PaymentIntent): Transaction {
   };
 }
 
-// The full agentic flow, in order:
+// Stateless agent: takes the current purse, returns the reply + updated purse.
 // message -> AI parses intent -> (ask for purpose if needed) -> policy engine
 // decides -> provider executes -> ledger + savings. The AI only parses language.
-export async function runAgent(message: string): Promise<AgentResult> {
-  // 1. Are we finishing a transfer that was waiting on its purpose?
-  const pending = await getPending();
-  if (pending) {
+export async function runAgent(
+  message: string,
+  inState: PurseState
+): Promise<{ result: AgentResult; state: PurseState }> {
+  const s = clonePurse(inState);
+
+  // 1. Finishing a transfer that was waiting on its purpose?
+  if (s.pending) {
     const cat = inferCategory(message);
     if (cat) {
-      await setPending(null);
-      return executeIntent(withCategory(pending, cat));
+      const intent = withCategory(s.pending, cat);
+      s.pending = null;
+      const result = await executeIntent(s, intent);
+      return { result, state: s };
     }
-    // Still couldn't read a purpose — keep waiting, nudge with examples.
     return {
-      intent: pending,
-      transaction: pendingTxn(pending),
-      message:
-        "I didn't catch the purpose. What's it for? e.g. feeding, data, transport, rent, bills.",
+      result: {
+        intent: s.pending,
+        transaction: pendingTxn(s.pending),
+        message:
+          "I didn't catch the purpose. What's it for? e.g. feeding, data, transport, rent, bills.",
+      },
+      state: s,
     };
   }
 
   // 2. Parse the fresh message.
   let intent = await parseIntent(message);
 
-  // Airtime/data with no number = top up your own line.
   if (
     (intent.action === "buy_airtime" || intent.action === "buy_data") &&
     !intent.recipient
@@ -93,8 +94,6 @@ export async function runAgent(message: string): Promise<AgentResult> {
     intent.recipient = OWN_LINE;
   }
 
-  // If it's a payment with no clear purpose, try to read one from the same
-  // message ("send ₦5k to 0814… for feeding").
   if (needsPurpose(intent)) {
     const cat = inferCategory(message);
     if (cat) intent = withCategory(intent, cat);
@@ -102,27 +101,29 @@ export async function runAgent(message: string): Promise<AgentResult> {
 
   // 3. Still ambiguous → ask what it's for and remember the transfer.
   if (needsPurpose(intent)) {
-    await setPending(intent);
+    s.pending = intent;
     const amt = intent.amount ? `₦${intent.amount.toLocaleString()}` : "that";
     const who = intent.recipient ? ` to ${intent.recipient}` : "";
     return {
-      intent,
-      transaction: pendingTxn(intent),
-      message: `Got it — sending ${amt}${who}. What's it for? (e.g. feeding, data, transport, rent, bills)`,
+      result: {
+        intent,
+        transaction: pendingTxn(intent),
+        message: `Got it — sending ${amt}${who}. What's it for? (e.g. feeding, data, transport, rent, bills)`,
+      },
+      state: s,
     };
   }
 
   // 4. Fully specified → run it.
-  return executeIntent(intent);
+  const result = await executeIntent(s, intent);
+  return { result, state: s };
 }
 
 // Policy check -> execute -> ledger. Every money decision lives here, not in
-// the AI. This is the product's core guarantee.
-async function executeIntent(intent: PaymentIntent): Promise<AgentResult> {
-  const wallets = await getWallets();
-  const decision = evaluatePolicy(intent, wallets);
+// the AI. Mutates the passed-in (already cloned) purse.
+async function executeIntent(s: PurseState, intent: PaymentIntent): Promise<AgentResult> {
+  const decision = evaluatePolicy(intent, s.wallets);
 
-  // Blocked by rules — no money moves. This is the product's core moment.
   if (!decision.allowed) {
     const txn: Transaction = {
       id: id(),
@@ -134,11 +135,10 @@ async function executeIntent(intent: PaymentIntent): Promise<AgentResult> {
       status: "blocked",
       reason: decision.reason,
     };
-    await commitTransaction(txn);
+    applyTransaction(s, txn);
     return { intent, transaction: txn, message: `🔒 ${decision.reason}` };
   }
 
-  // Allowed — execute against the payment rail.
   const amount = intent.amount as number;
   const result = await execute(intent);
 
@@ -153,7 +153,7 @@ async function executeIntent(intent: PaymentIntent): Promise<AgentResult> {
       status: "failed",
       reason: result.detail,
     };
-    await commitTransaction(txn);
+    applyTransaction(s, txn);
     return { intent, transaction: txn, message: `⚠️ Payment failed: ${result.detail}` };
   }
 
@@ -169,7 +169,7 @@ async function executeIntent(intent: PaymentIntent): Promise<AgentResult> {
     providerRef: result.reference,
     savings,
   };
-  await commitTransaction(txn);
+  applyTransaction(s, txn);
 
   const savingsLine = savings > 0 ? ` (₦${savings} rounded into savings)` : "";
   return {

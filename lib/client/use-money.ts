@@ -1,27 +1,32 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Transaction, Wallet } from "@/lib/money/types";
+import type { Wallet } from "@/lib/money/types";
+import type { PurseState } from "@/lib/money/state";
+import { loadPurse } from "./purse";
 
-export interface MoneyState {
-  wallets: Wallet[];
-  transactions: Transaction[];
-  savings: number;
-  displayName?: string | null;
-}
-
+// Reads the purse from the browser (localStorage) and re-reads it whenever it
+// changes — after the agent acts, after onboarding, or in another tab.
 export function useMoney() {
-  const [state, setState] = useState<MoneyState | null>(null);
+  const [state, setState] = useState<PurseState | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
-    const r = await fetch("/api/state");
-    if (r.ok) setState(await r.json());
+  const refresh = useCallback(() => {
+    setState(loadPurse());
     setLoading(false);
   }, []);
 
   useEffect(() => {
     refresh();
+    const on = () => refresh();
+    window.addEventListener("purse:changed", on);
+    window.addEventListener("storage", on);
+    window.addEventListener("focus", on);
+    return () => {
+      window.removeEventListener("purse:changed", on);
+      window.removeEventListener("storage", on);
+      window.removeEventListener("focus", on);
+    };
   }, [refresh]);
 
   return { state, setState, refresh, loading };

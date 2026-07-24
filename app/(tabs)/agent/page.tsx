@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Mic, Send, RotateCcw } from "@/components/icons";
 import { AgentMark, type AgentState } from "@/components/agent-mark";
 import type { Transaction } from "@/lib/money/types";
+import { loadPurse, savePurse, resetAndSave } from "@/lib/client/purse";
 
 interface ChatMsg {
   role: "user" | "agent";
@@ -57,9 +58,10 @@ function AgentInner() {
       const res = await fetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, state: loadPurse() }),
       });
       const data = await res.json();
+      if (data.state) savePurse(data.state);
       setMessages((m) => [
         ...m,
         {
@@ -92,8 +94,8 @@ function AgentInner() {
     rec.start();
   }
 
-  async function reset() {
-    await fetch("/api/state", { method: "POST" });
+  function reset() {
+    resetAndSave();
     setMessages([]);
   }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowLeft, Check, Sparkles, Loader2, X, Plus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,8 @@ import {
   type WalletInput,
   type Purpose,
 } from "@/lib/money/seed";
-import { completeOnboarding } from "./actions";
+import { purseFromInputs } from "@/lib/money/state";
+import { savePurse } from "@/lib/client/purse";
 
 const PRESETS = [50000, 100000, 150000, 250000];
 // Monochrome ash ramp — tones of the ink colour, so it adapts to light/dark.
@@ -52,6 +54,7 @@ export default function OnboardingPage() {
   const [adding, setAdding] = useState(false);
   const [customName, setCustomName] = useState("");
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const autoRan = useRef(false);
 
   const allocated = rows.reduce((s, r) => s + (r.amount || 0), 0);
@@ -150,8 +153,9 @@ export default function OnboardingPage() {
       perTxnLimit: r.perTxnLimit,
       allowCashout: r.allowCashout,
     }));
-    startTransition(async () => {
-      await completeOnboarding({ displayName: name, wallets });
+    startTransition(() => {
+      savePurse(purseFromInputs(wallets, name));
+      router.push("/home");
     });
   }
 

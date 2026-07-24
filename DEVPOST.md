@@ -93,5 +93,5 @@ pidgin · natural-language-processing · structured-output
 ---
 
 ## Team
-- _<Member 1 name>_ — _<role, e.g. Full-stack / product / AI>_
-- _<Member 2 name>_ — _<role>_
+- **Inioluwa Aroyewun** — Full-stack & AI engineering
+- **Nuffi Akolade** — Product, design & pitch
