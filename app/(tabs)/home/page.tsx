@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ArrowUpRight, Mic } from "lucide-react";
 import { useMoney, naira, spendable, lockedForGoals } from "@/lib/client/use-money";
 import { WalletIcon } from "@/components/wallet-icon";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 function greeting() {
   const h = new Date().getHours();
@@ -42,9 +43,12 @@ export default function HomePage() {
             Your money is working quietly.
           </p>
         </div>
-        <span className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-card font-display text-sm font-bold text-primary">
-          {state?.displayName ? state.displayName[0].toUpperCase() : "Z"}
-        </span>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <span className="flex size-10 items-center justify-center rounded-full border border-border bg-card font-display text-sm font-bold text-foreground">
+            {state?.displayName ? state.displayName[0].toUpperCase() : "Z"}
+          </span>
+        </div>
       </header>
 
       {/* Balance */}
@@ -56,7 +60,7 @@ export default function HomePage() {
         <p className="mt-1 text-xs text-muted-foreground">
           Across {wallets.length} active wallets
         </p>
-        <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4 text-center">
+        <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-4 text-center">
           <Stat label="Locked for goals" value={naira(goals)} />
           <Stat label="Auto savings" value={naira(state?.savings ?? 0)} accent />
           <Stat label="Total managed" value={naira(total)} />

@@ -3,42 +3,76 @@
 @tailwind utilities;
 
 @layer base {
+  /* Monochrome system — white, black, gray, ash. Light is the default;
+     .dark flips it. Primary is the ink colour (black on light, white on dark),
+     so every accent stays neutral and technical. */
   :root {
-    /* "Quiet Intelligence" — deep midnight, restrained. */
-    --background: 210 38% 5%; /* #080D12 */
-    --foreground: 140 14% 96%; /* #F4F7F5 */
+    --background: 0 0% 98%; /* #FAFAFA ash-white */
+    --foreground: 0 0% 9%; /* #171717 near-black */
 
-    --card: 213 31% 10%; /* #111820 primary surface */
-    --card-foreground: 140 14% 96%;
-    --elevated: 208 31% 12%; /* #151F28 elevated surface */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 0 0% 9%;
+    --elevated: 0 0% 96%; /* #F5F5F5 */
 
-    --primary: 85 60% 60%; /* #A4D65E soft mint */
-    --primary-foreground: 210 38% 6%; /* dark text on mint */
-    --positive: 145 100% 35%; /* #00B44B */
+    --primary: 0 0% 9%; /* ink */
+    --primary-foreground: 0 0% 98%;
+    --positive: 0 0% 9%;
 
-    --secondary: 208 31% 12%;
-    --secondary-foreground: 140 14% 96%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
 
-    --muted: 213 31% 10%;
-    --muted-foreground: 206 10% 60%; /* #8E9AA3 */
-    --subtle: 207 10% 40%; /* #5D6871 */
+    --muted: 0 0% 94%; /* #F0F0F0 */
+    --muted-foreground: 0 0% 40%; /* #666 */
+    --subtle: 0 0% 55%;
 
-    --accent: 208 31% 14%;
-    --accent-foreground: 140 14% 96%;
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 9%;
 
-    --destructive: 0 72% 56%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 0% 20%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 207 22% 15%;
-    --input: 207 22% 17%;
-    --ring: 85 60% 60%;
+    --border: 0 0% 90%; /* #E5E5E5 */
+    --input: 0 0% 88%;
+    --ring: 0 0% 9%;
 
-    --radius: 1rem;
+    --radius: 0.8rem;
 
     --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system,
       "Segoe UI", Roboto, sans-serif;
-    --font-sora: "Sora", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-      Roboto, sans-serif;
+    --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui,
+      sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+      Consolas, monospace;
+  }
+
+  .dark {
+    --background: 0 0% 4%; /* #0A0A0A */
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 7%; /* #121212 */
+    --card-foreground: 0 0% 98%;
+    --elevated: 0 0% 10%;
+
+    --primary: 0 0% 98%; /* ink flips to white */
+    --primary-foreground: 0 0% 9%;
+    --positive: 0 0% 98%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 63%;
+    --subtle: 0 0% 45%;
+
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 0% 85%;
+    --destructive-foreground: 0 0% 9%;
+
+    --border: 0 0% 16%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 83%;
   }
 }
 
@@ -51,36 +85,49 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   h1,
   h2,
   h3 {
-    font-family: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
-    letter-spacing: -0.02em;
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.03em;
   }
 }
 
 @layer components {
-  /* Flat elevated surface — no glassmorphism, no blur. */
+  /* Flat elevated surface — a hairline border + card fill, theme-aware. */
   .surface {
-    @apply rounded-2xl border border-white/[0.05] bg-card;
+    @apply rounded-2xl border border-border bg-card;
   }
   .surface-2 {
-    @apply rounded-2xl border border-white/[0.05] bg-[hsl(var(--elevated))];
+    @apply rounded-2xl border border-border bg-[hsl(var(--elevated))];
   }
-  /* Kept for back-compat with earlier screens — now a flat surface. */
+  /* Back-compat alias used across earlier screens. */
   .glass {
-    @apply border border-white/[0.05] bg-card;
+    @apply rounded-2xl border border-border bg-card;
   }
-  /* Solid mint action — no gradient. */
   .brand-bg {
     @apply bg-primary text-primary-foreground;
   }
   .brand-text {
     @apply text-primary;
   }
+  /* Monospaced technical label — x402 flavour. */
+  .mono-label {
+    font-family: var(--font-mono);
+    @apply text-[11px] uppercase tracking-[0.14em] text-muted-foreground;
+  }
 }
 
 @layer utilities {
+  .font-mono {
+    font-family: var(--font-mono);
+  }
   .animate-fade-up {
     animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
@@ -110,97 +157,23 @@
   }
 }
 
-/* ---- Agent Mark ---------------------------------------------------------- */
-.agent-mark {
-  position: relative;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-.agent-mark::before {
-  content: "";
-  position: absolute;
-  inset: -18%;
-  border-radius: 9999px;
-  background: radial-gradient(
-    circle,
-    hsl(var(--primary) / 0.18),
-    transparent 70%
-  );
-}
-.agent-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  border: 1px solid hsl(var(--primary) / 0.3);
-}
-.agent-nodes {
-  position: absolute;
-  inset: 0;
-}
-.agent-node {
-  position: absolute;
-  width: 15%;
-  height: 15%;
-  border-radius: 9999px;
-  background: hsl(var(--primary));
-  box-shadow: 0 0 8px hsl(var(--primary) / 0.6);
-}
-.n-top {
-  left: 50%;
-  top: 15%;
-  transform: translate(-50%, -50%);
-}
-.n-right {
-  left: 85%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-.n-bottom {
-  left: 50%;
-  top: 85%;
-  transform: translate(-50%, -50%);
-}
-.n-left {
-  left: 15%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-.agent-core {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 13%;
-  height: 13%;
-  border-radius: 9999px;
-  transform: translate(-50%, -50%);
-  background: hsl(var(--foreground));
-}
-.agent-mark[data-state="thinking"] .agent-nodes {
-  animation: agent-orbit 3.5s linear infinite;
-  transform-origin: center;
-}
-.agent-mark[data-state="listening"] .agent-ring {
-  animation: agent-ring-pulse 1.2s ease-in-out infinite;
-}
-@keyframes agent-orbit {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@keyframes agent-ring-pulse {
+/* Agent mark pulse (used on the /agent screen). */
+@keyframes mark-pulse {
   0%,
   100% {
     transform: scale(1);
-    opacity: 0.5;
+    opacity: 0.35;
   }
   50% {
-    transform: scale(1.12);
-    opacity: 1;
+    transform: scale(1.15);
+    opacity: 0.7;
   }
 }
+.animate-mark-pulse {
+  animation: mark-pulse 1.6s ease-in-out infinite;
+}
 
-/* Slim scrollbars. */
+/* Slim, neutral scrollbars. */
 * {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--border)) transparent;

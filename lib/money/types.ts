@@ -26,7 +26,7 @@ export interface Wallet {
   rules: WalletRules;
 }
 
-export type TxnStatus = "success" | "blocked" | "failed";
+export type TxnStatus = "success" | "blocked" | "failed" | "pending";
 
 export interface Transaction {
   id: string;

@@ -1,4 +1,4 @@
-import type { Transaction, Wallet } from "./types";
+import type { PaymentIntent, Transaction, Wallet } from "./types";
 import { allocate, type WalletInput } from "./seed";
 
 // In-memory demo store. One shared "purse" for the whole app — no auth, no
@@ -14,6 +14,7 @@ interface DemoState {
   savings: number;
   displayName: string | null;
   total: number; // the locked amount, so Reset can restore a full purse
+  pending: PaymentIntent | null; // a transfer awaiting its purpose ("for what?")
 }
 
 const DEFAULT_TOTAL = 150000;
@@ -45,6 +46,7 @@ function state(): DemoState {
       savings: 0,
       displayName: null,
       total: DEFAULT_TOTAL,
+      pending: null,
     };
   }
   return g.__zeroth;
@@ -120,10 +122,20 @@ export async function seedWallets(inputs: WalletInput[], displayName?: string) {
   if (displayName !== undefined) s.displayName = displayName.trim() || null;
 }
 
+// A transfer we understood except for its purpose — held until the user
+// answers "what's it for?" (see the orchestrator's multi-turn flow).
+export async function getPending(): Promise<PaymentIntent | null> {
+  return state().pending;
+}
+export async function setPending(intent: PaymentIntent | null) {
+  state().pending = intent;
+}
+
 // Reset balances to their onboarding amounts and clear activity (demo Reset).
 export async function resetData() {
   const s = state();
   s.wallets = seed(s.total);
   s.transactions = [];
   s.savings = 0;
+  s.pending = null;
 }

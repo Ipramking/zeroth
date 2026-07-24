@@ -60,7 +60,7 @@ export function WalletIcon({
   return (
     <span
       className={cn(
-        "flex size-10 items-center justify-center rounded-xl bg-[hsl(var(--elevated))] text-primary",
+        "flex size-10 items-center justify-center rounded-xl border border-border bg-muted text-foreground",
         className
       )}
     >

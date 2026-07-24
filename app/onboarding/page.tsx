@@ -18,10 +18,18 @@ import {
 import { completeOnboarding } from "./actions";
 
 const PRESETS = [50000, 100000, 150000, 250000];
+// Monochrome ash ramp — tones of the ink colour, so it adapts to light/dark.
 const PALETTE = [
-  "#A4D65E", "#00B44B", "#5EC8D6", "#6E8BFF",
-  "#B98BFF", "#FF8B6E", "#FFC65E", "#FF6E9C",
-  "#7ED957", "#4CC3FF",
+  "hsl(var(--foreground) / 0.92)",
+  "hsl(var(--foreground) / 0.70)",
+  "hsl(var(--foreground) / 0.52)",
+  "hsl(var(--foreground) / 0.38)",
+  "hsl(var(--foreground) / 0.26)",
+  "hsl(var(--foreground) / 0.82)",
+  "hsl(var(--foreground) / 0.62)",
+  "hsl(var(--foreground) / 0.46)",
+  "hsl(var(--foreground) / 0.32)",
+  "hsl(var(--foreground) / 0.20)",
 ];
 
 type Row = WalletInput & { uid: string };
@@ -178,7 +186,7 @@ export default function OnboardingPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Ada"
-            className="mt-6 h-12 rounded-xl border-white/10 bg-white/[0.03] text-base"
+            className="mt-6 h-12 rounded-xl border-border bg-muted/50 text-base"
           />
           <div className="mt-auto pt-8">
             <Button
@@ -202,7 +210,7 @@ export default function OnboardingPage() {
             impulse-cash-out.
           </p>
 
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="mt-6 rounded-2xl border border-border bg-muted/50 p-4">
             <div className="flex items-center gap-1 text-3xl font-bold">
               <span className="text-muted-foreground">₦</span>
               <input
@@ -226,7 +234,7 @@ export default function OnboardingPage() {
                 className={`rounded-xl border py-2 text-xs transition ${
                   total === p
                     ? "border-primary/40 bg-primary/10 text-foreground"
-                    : "border-white/10 bg-white/[0.02] text-muted-foreground hover:text-foreground"
+                    : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {naira(p)}
@@ -238,7 +246,7 @@ export default function OnboardingPage() {
             <Button
               variant="outline"
               onClick={() => setStep(0)}
-              className="h-12 rounded-xl border-white/10 bg-white/[0.03]"
+              className="h-12 rounded-xl border-border bg-muted/50"
             >
               <ArrowLeft />
             </Button>
@@ -263,7 +271,7 @@ export default function OnboardingPage() {
           </p>
 
           {/* AI control */}
-          <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5">
+          <div className="mt-4 rounded-2xl border border-border bg-muted/50 p-2.5">
             <div className="flex items-center gap-2">
               <input
                 value={goals}
@@ -339,7 +347,7 @@ export default function OnboardingPage() {
                 <button
                   onClick={() => remove(r.uid)}
                   aria-label={`Remove ${r.name}`}
-                  className="shrink-0 text-muted-foreground transition hover:text-red-400"
+                  className="shrink-0 text-muted-foreground transition hover:text-foreground"
                 >
                   <X className="size-4" />
                 </button>
@@ -349,14 +357,14 @@ export default function OnboardingPage() {
 
           {/* Add wallet */}
           {adding ? (
-            <div className="mt-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <div className="mt-2 rounded-2xl border border-border bg-muted/50 p-3">
               {availablePresets.length > 0 && (
                 <div className="mb-2.5 flex flex-wrap gap-1.5">
                   {availablePresets.map((p) => (
                     <button
                       key={p.key}
                       onClick={() => addPreset(p)}
-                      className="rounded-full border border-white/10 px-2.5 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+                      className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
                     >
                       + {p.name}
                     </button>
@@ -369,7 +377,7 @@ export default function OnboardingPage() {
                   onChange={(e) => setCustomName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addCustom()}
                   placeholder="Or type your own purpose…"
-                  className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+                  className="min-w-0 flex-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
                 />
                 <Button
                   onClick={addCustom}
@@ -390,7 +398,7 @@ export default function OnboardingPage() {
           ) : (
             <button
               onClick={() => setAdding(true)}
-              className="mt-2 flex w-full items-center justify-center gap-1 rounded-2xl border border-dashed border-white/15 py-2.5 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
+              className="mt-2 flex w-full items-center justify-center gap-1 rounded-2xl border border-dashed border-border py-2.5 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
             >
               <Plus className="size-4" /> Add wallet
             </button>
@@ -401,7 +409,7 @@ export default function OnboardingPage() {
             className={`mt-4 flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm ${
               remaining === 0
                 ? "border-primary/30 bg-primary/10"
-                : "border-amber-500/30 bg-amber-500/10"
+                : "border-border bg-muted"
             }`}
           >
             <span className="text-muted-foreground">
@@ -416,7 +424,7 @@ export default function OnboardingPage() {
             ) : (
               <button
                 onClick={autoFit}
-                className="font-medium text-amber-300 underline-offset-2 hover:underline"
+                className="font-medium text-foreground underline-offset-2 hover:underline"
               >
                 {remaining > 0 ? `${naira(remaining)} left` : `${naira(-remaining)} over`}{" "}
                 · Auto-fit
@@ -429,7 +437,7 @@ export default function OnboardingPage() {
               variant="outline"
               onClick={() => setStep(1)}
               disabled={pending}
-              className="h-12 rounded-xl border-white/10 bg-white/[0.03]"
+              className="h-12 rounded-xl border-border bg-muted/50"
             >
               <ArrowLeft />
             </Button>

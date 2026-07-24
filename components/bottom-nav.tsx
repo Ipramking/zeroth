@@ -21,7 +21,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto max-w-md">
-      <div className="mx-3 mb-3 flex items-end justify-between rounded-2xl border border-white/[0.06] bg-[hsl(var(--elevated))]/95 px-2 py-2 backdrop-blur-sm">
+      <div className="mx-3 mb-3 flex items-end justify-between rounded-2xl border border-border bg-card/95 px-2 py-2 backdrop-blur-sm">
         {LEFT.map((t) => (
           <NavItem key={t.href} {...t} active={pathname.startsWith(t.href)} />
         ))}
@@ -32,16 +32,14 @@ export function BottomNav() {
           aria-label="Agent"
           className="relative -mt-7 flex flex-col items-center"
         >
-          <span
+          <AgentMark
+            size={54}
+            state={agentActive ? "listening" : "idle"}
             className={cn(
-              "flex size-14 items-center justify-center rounded-full border transition",
-              agentActive
-                ? "border-primary/50 bg-primary/15"
-                : "border-white/10 bg-[hsl(var(--card))]"
+              "shadow-sm transition",
+              agentActive && "ring-2 ring-foreground ring-offset-2 ring-offset-card"
             )}
-          >
-            <AgentMark size={30} state={agentActive ? "listening" : "idle"} />
-          </span>
+          />
         </Link>
 
         {RIGHT.map((t) => (

@@ -11,14 +11,24 @@ Convert the user's message into a single payment intent as JSON.
 Rules:
 - amount is in Naira (₦). "5k" = 5000, "500" = 500. Null if none given.
 - action is one of: buy_airtime, buy_data, pay_bill, pay_merchant, pay_rent, cash_out, unknown.
-- "withdraw", "send to my account", "cash out", "transfer to my bank" => cash_out.
-- food/lunch/suya/restaurant => pay_merchant with category food.
-- bus/uber/bolt/transport => pay_merchant with category transport.
-- electricity/nepa/light/dstv/water => pay_bill with category bills.
-- rent/landlord => pay_rent with category rent.
+- Sending/transferring money to another PERSON or phone number (e.g. "send ₦5k to
+  08145997956 palmpay Samuel", "transfer 2k to Ada") is a PAYMENT, not a cash_out.
+  Put the person's name and/or number in recipient.
+- cash_out is ONLY when the user withdraws to THEIR OWN bank/account or says
+  "withdraw"/"cash out" for themselves, with no third-party recipient.
+- Determine category from the stated purpose ("for X"):
+  - feeding/food/lunch/suya/restaurant/market => pay_merchant, category food.
+  - transport/bus/uber/bolt/fare/fuel => pay_merchant, category transport.
+  - data/internet => buy_data, category data.
+  - airtime/recharge/credit => buy_airtime, category airtime.
+  - electricity/nepa/light/dstv/water/bill => pay_bill, category bills.
+  - rent/landlord => pay_rent, category rent.
+- If the user is sending money to a person but states NO purpose, use action
+  pay_merchant with category "general" (the app will ask what it's for). Still
+  fill amount and recipient.
 - network is MTN, Glo, Airtel, or 9mobile if stated, else null.
 - recipient is the phone number, meter, account, or merchant/person named, else null.
-- If you cannot tell, use action "unknown".`;
+- If you truly cannot tell what they want, use action "unknown".`;
 
 const responseSchema = {
   type: SchemaType.OBJECT,
@@ -118,7 +128,8 @@ export function heuristicParse(message: string): PaymentIntent {
   const phone = parsePhone(message);
   const network = parseNetwork(message);
 
-  if (/(withdraw|cash ?out|to my (bank|account)|transfer to)/.test(m)) {
+  // Self cash-out only (withdrawing to your OWN account, no third party).
+  if (/(withdraw|cash ?out|to my (own )?(bank|account)|send to my)/.test(m)) {
     return {
       action: "cash_out",
       category: "general",
@@ -140,11 +151,20 @@ export function heuristicParse(message: string): PaymentIntent {
   if (/(rent|landlord)/.test(m)) {
     return { action: "pay_rent", category: "rent", amount, recipient: null, network: null, note: null };
   }
-  if (/(food|lunch|suya|eat|restaurant|dinner|breakfast)/.test(m)) {
-    return { action: "pay_merchant", category: "food", amount, recipient: null, network: null, note: null };
+  if (/(feed|food|lunch|suya|eat|chop|restaurant|dinner|breakfast|market)/.test(m)) {
+    return { action: "pay_merchant", category: "food", amount, recipient: phone, network: null, note: null };
   }
-  if (/(bus|uber|bolt|transport|keke|okada|fare)/.test(m)) {
-    return { action: "pay_merchant", category: "transport", amount, recipient: null, network: null, note: null };
+  if (/(bus|uber|bolt|transport|keke|okada|fare|fuel)/.test(m)) {
+    return { action: "pay_merchant", category: "transport", amount, recipient: phone, network: null, note: null };
+  }
+  // Transfer to a person/number with no stated purpose — the orchestrator will
+  // ask what it's for. Detect a phone, a bank/wallet name, or send/transfer/pay.
+  if (
+    phone ||
+    /(palmpay|opay|moniepoint|kuda|gtb|access|zenith|uba|wema|first ?bank)/.test(m) ||
+    (/(send|transfer|pay)\b/.test(m) && amount)
+  ) {
+    return { action: "pay_merchant", category: "general", amount, recipient: phone, network: null, note: null };
   }
   return { action: "unknown", category: "general", amount, recipient: null, network: null, note: null };
 }

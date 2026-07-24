@@ -80,7 +80,7 @@ export default function ActivityPage() {
                         ? "bg-primary/10 text-primary"
                         : t.status === "blocked"
                           ? "bg-destructive/10 text-destructive"
-                          : "bg-amber-500/10 text-amber-500"
+                          : "bg-muted text-amber-500"
                     }`}
                   >
                     {t.status === "success" ? (

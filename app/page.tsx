@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ShieldCheck, Sparkles, Lock, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandLockup } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const FEATURES = [
   {
@@ -26,15 +27,18 @@ export default function Home() {
     <main className="mx-auto flex min-h-dvh max-w-6xl flex-col px-5">
       <header className="flex items-center justify-between py-6">
         <BrandLockup />
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/home">Open app</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button asChild variant="outline" size="sm" className="rounded-full">
+            <Link href="/home">Open app</Link>
+          </Button>
+        </div>
       </header>
 
       <section className="flex flex-1 flex-col items-center justify-center py-12 text-center">
-        <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+        <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
           <span className="brand-text font-semibold">Zeroth</span>
-          <span className="text-white/20">·</span>
+          <span className="text-muted-foreground/40">·</span>
           the third body between you and your money
         </div>
 
@@ -56,7 +60,7 @@ export default function Home() {
               Get started free <ArrowRight className="ml-1" />
             </Link>
           </Button>
-          <Button asChild size="lg" variant="outline" className="h-12 border-white/10 bg-white/[0.02] px-7 text-base backdrop-blur hover:bg-white/[0.05]">
+          <Button asChild size="lg" variant="outline" className="h-12 border-border bg-muted/40 px-7 text-base backdrop-blur hover:bg-muted">
             <Link href="/home">
               <Mic className="mr-1" /> Try it now
             </Link>
@@ -70,8 +74,8 @@ export default function Home() {
               className="glass animate-fade-up rounded-2xl p-5 text-left"
               style={{ animationDelay: `${0.1 + i * 0.08}s` }}
             >
-              <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <f.icon className="size-5" />
+              <span className="flex size-10 items-center justify-center rounded-xl border border-border bg-muted text-foreground">
+                <f.icon className="size-5" strokeWidth={1.75} />
               </span>
               <h3 className="mt-4 font-display text-base font-semibold">
                 {f.title}
