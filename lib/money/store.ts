@@ -1,5 +1,5 @@
 import type { Transaction, Wallet } from "./types";
-import { allocate } from "./seed";
+import { allocate, type WalletInput } from "./seed";
 
 // In-memory demo store. One shared "purse" for the whole app — no auth, no
 // database. State lives for the life of the server process (it resets on a
@@ -82,13 +82,41 @@ export async function commitTransaction(txn: Transaction) {
   s.transactions.unshift(txn);
 }
 
-// Create the purse from a total lock amount (used by onboarding).
-export async function seedWallets(total: number, displayName?: string) {
+function slug(name: string) {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "wallet"
+  );
+}
+
+function inputsToWallets(inputs: WalletInput[]): Wallet[] {
+  return inputs
+    .filter((w) => w.amount > 0)
+    .map((w, i) => ({
+      id: `w_${slug(w.name)}_${i}`,
+      name: w.name,
+      category: w.category,
+      balance: w.amount,
+      locked: true,
+      rules: {
+        categories: w.categories,
+        perTxnLimit: w.perTxnLimit > 0 ? w.perTxnLimit : w.amount,
+        allowCashout: w.allowCashout,
+      },
+    }));
+}
+
+// Create the purse from the user's chosen wallets (used by onboarding). The
+// split is fully user-defined — any number of wallets, custom names/amounts.
+export async function seedWallets(inputs: WalletInput[], displayName?: string) {
   const s = state();
-  s.wallets = seed(total);
+  const wallets = inputsToWallets(inputs);
+  s.wallets = wallets.length ? wallets : seed(150000);
   s.transactions = [];
   s.savings = 0;
-  s.total = total;
+  s.total = s.wallets.reduce((sum, w) => sum + w.balance, 0);
   if (displayName !== undefined) s.displayName = displayName.trim() || null;
 }
 

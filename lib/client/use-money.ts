@@ -31,14 +31,15 @@ export function naira(n: number) {
   return "₦" + Number(n || 0).toLocaleString();
 }
 
-// Wallets that fund everyday spending (everything except the rent goal vault).
+// A wallet funds everyday spending if its rules allow at least one spend
+// category. Vaults (savings/emergency/investments, and the rent goal) fund no
+// spending — they hold locked money toward a goal.
+export function isSpendWallet(w: Wallet) {
+  return w.rules.categories.length > 0 && w.category !== "rent";
+}
 export function spendable(wallets: Wallet[]) {
-  return wallets
-    .filter((w) => w.category !== "rent")
-    .reduce((s, w) => s + w.balance, 0);
+  return wallets.filter(isSpendWallet).reduce((s, w) => s + w.balance, 0);
 }
 export function lockedForGoals(wallets: Wallet[]) {
-  return wallets
-    .filter((w) => w.category === "rent")
-    .reduce((s, w) => s + w.balance, 0);
+  return wallets.filter((w) => !isSpendWallet(w)).reduce((s, w) => s + w.balance, 0);
 }

@@ -18,3 +18,5 @@ next-env.d.ts
 TODO.md
 server.demo.log
 .vercel
+
+.commitmsg.tmp
