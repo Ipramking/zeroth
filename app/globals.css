@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* "Quiet Intelligence" — deep midnight, restrained. */
+    --background: 210 38% 5%; /* #080D12 */
+    --foreground: 140 14% 96%; /* #F4F7F5 */
+
+    --card: 213 31% 10%; /* #111820 primary surface */
+    --card-foreground: 140 14% 96%;
+    --elevated: 208 31% 12%; /* #151F28 elevated surface */
+
+    --primary: 85 60% 60%; /* #A4D65E soft mint */
+    --primary-foreground: 210 38% 6%; /* dark text on mint */
+    --positive: 145 100% 35%; /* #00B44B */
+
+    --secondary: 208 31% 12%;
+    --secondary-foreground: 140 14% 96%;
+
+    --muted: 213 31% 10%;
+    --muted-foreground: 206 10% 60%; /* #8E9AA3 */
+    --subtle: 207 10% 40%; /* #5D6871 */
+
+    --accent: 208 31% 14%;
+    --accent-foreground: 140 14% 96%;
+
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 207 22% 15%;
+    --input: 207 22% 17%;
+    --ring: 85 60% 60%;
+
+    --radius: 1rem;
+
+    --font-inter: "Inter", ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", Roboto, sans-serif;
+    --font-sora: "Sora", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+      Roboto, sans-serif;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  /* Flat elevated surface — no glassmorphism, no blur. */
+  .surface {
+    @apply rounded-2xl border border-white/[0.05] bg-card;
+  }
+  .surface-2 {
+    @apply rounded-2xl border border-white/[0.05] bg-[hsl(var(--elevated))];
+  }
+  /* Kept for back-compat with earlier screens — now a flat surface. */
+  .glass {
+    @apply border border-white/[0.05] bg-card;
+  }
+  /* Solid mint action — no gradient. */
+  .brand-bg {
+    @apply bg-primary text-primary-foreground;
+  }
+  .brand-text {
+    @apply text-primary;
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-pop {
+    animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---- Agent Mark ---------------------------------------------------------- */
+.agent-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.agent-mark::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    hsl(var(--primary) / 0.18),
+    transparent 70%
+  );
+}
+.agent-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--primary) / 0.3);
+}
+.agent-nodes {
+  position: absolute;
+  inset: 0;
+}
+.agent-node {
+  position: absolute;
+  width: 15%;
+  height: 15%;
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  box-shadow: 0 0 8px hsl(var(--primary) / 0.6);
+}
+.n-top {
+  left: 50%;
+  top: 15%;
+  transform: translate(-50%, -50%);
+}
+.n-right {
+  left: 85%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.n-bottom {
+  left: 50%;
+  top: 85%;
+  transform: translate(-50%, -50%);
+}
+.n-left {
+  left: 15%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.agent-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13%;
+  height: 13%;
+  border-radius: 9999px;
+  transform: translate(-50%, -50%);
+  background: hsl(var(--foreground));
+}
+.agent-mark[data-state="thinking"] .agent-nodes {
+  animation: agent-orbit 3.5s linear infinite;
+  transform-origin: center;
+}
+.agent-mark[data-state="listening"] .agent-ring {
+  animation: agent-ring-pulse 1.2s ease-in-out infinite;
+}
+@keyframes agent-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes agent-ring-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+/* Slim scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+*::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
+}
